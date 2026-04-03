@@ -1,0 +1,172 @@
+name: Discover And Scan Docker Repositories
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      github_org:
+        description: "GitHub organization to scan"
+        required: false
+        type: string
+      repo_type:
+        description: "GitHub org repository listing filter"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - public
+          - private
+          - member
+          - sources
+          - forks
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+jobs:
+  discover:
+    runs-on: ${{ vars.DISCOVERY_RUNNER_LABEL || 'ubuntu-latest' }}
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+      target_count: ${{ steps.select.outputs.target_count }}
+      github_org: ${{ steps.config.outputs.github_org }}
+    steps:
+      - name: Checkout control plane
+        uses: actions/checkout@v4
+
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.ORG_SCAN_APP_ID }}
+          private-key: ${{ secrets.ORG_SCAN_APP_PRIVATE_KEY }}
+          owner: ${{ inputs.github_org || vars.GITHUB_ORG || github.repository_owner }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Resolve effective organization
+        id: config
+        run: |
+          echo "github_org=${{ inputs.github_org || vars.GITHUB_ORG || github.repository_owner }}" >> "$GITHUB_OUTPUT"
+
+      - name: Discover repositories
+        run: |
+          python scripts/discover_repos.py \
+            --org "${{ steps.config.outputs.github_org }}" \
+            --token "${{ steps.app-token.outputs.token }}" \
+            --policy-file config/org-scan-policy.yaml \
+            --repo-type "${{ inputs.repo_type || 'all' }}" \
+            --output artifacts/discovery.json
+
+      - name: Select Docker scan targets
+        id: select
+        run: |
+          python scripts/select_docker_targets.py \
+            --discovery-file artifacts/discovery.json \
+            --policy-file config/org-scan-policy.yaml \
+            --matrix-out artifacts/matrix.json \
+            --inventory-out artifacts/target-inventory.json
+          {
+            echo 'matrix<<EOF'
+            cat artifacts/matrix.json
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+          python - <<'PY'
+          import json
+          import os
+          with open("artifacts/matrix.json", "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+          count = len(payload.get("include", []))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"target_count={count}\n")
+          PY
+
+      - name: Upload discovery inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: discovery-inventory
+          path: |
+            artifacts/discovery.json
+            artifacts/target-inventory.json
+            artifacts/matrix.json
+          retention-days: 14
+
+  scan-targets:
+    needs: discover
+    if: ${{ needs.discover.outputs.target_count != '0' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    uses: ./.github/workflows/reusable-container-scan.yml
+    with:
+      repository: ${{ matrix.repository }}
+      ref: ${{ matrix.ref }}
+      dockerfile_path: ${{ matrix.dockerfile_path }}
+      build_context: ${{ matrix.build_context }}
+      image_name: ${{ matrix.image_name }}
+      policy_mode: ${{ matrix.policy_mode }}
+      severity_threshold: ${{ matrix.severity_threshold }}
+      ignore_unfixed: ${{ matrix.ignore_unfixed }}
+      runner_label: ${{ vars.SCAN_RUNNER_LABEL || 'ubuntu-latest' }}
+      docker_builder_mode: ${{ vars.DOCKER_BUILDER_MODE || 'docker-buildx' }}
+      tooling_mode: ${{ vars.TOOLING_MODE || 'bootstrap' }}
+      docker_cache_mode: ${{ vars.DOCKER_CACHE_MODE || 'gha' }}
+      docker_local_cache_dir: ${{ vars.DOCKER_LOCAL_CACHE_DIR || '/var/lib/repo-scanner/buildx-cache' }}
+      allowlist_cves: ${{ toJson(matrix.allowlist_cves) }}
+      skip_secret_scan: ${{ matrix.skip_secret_scan }}
+      skip_build: ${{ matrix.skip_build }}
+    secrets: inherit
+
+  aggregate:
+    needs:
+      - discover
+      - scan-targets
+    if: ${{ always() }}
+    runs-on: ${{ vars.DISCOVERY_RUNNER_LABEL || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout control plane
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/downloaded
+
+      - name: Aggregate results
+        run: |
+          python scripts/normalize_results.py aggregate \
+            --artifacts-dir artifacts/downloaded \
+            --output-json artifacts/org-scan-summary.json \
+            --output-csv artifacts/org-scan-summary.csv \
+            --output-markdown artifacts/org-scan-summary.md
+          cat artifacts/org-scan-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload org summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: org-scan-summary
+          path: |
+            artifacts/org-scan-summary.json
+            artifacts/org-scan-summary.csv
+            artifacts/org-scan-summary.md
+          retention-days: 14
