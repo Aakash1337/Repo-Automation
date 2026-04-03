@@ -1,0 +1,49 @@
+{
+  "repo": "acme/api",
+  "ref": "main",
+  "dockerfile_path": "Dockerfile",
+  "image_name": "localscan/api:root",
+  "scan_time": "2026-04-03T00:00:00+00:00",
+  "vuln_counts": {
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "unknown": 0
+  },
+  "fixable_vuln_counts": {
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "unknown": 0
+  },
+  "suppressed_vuln_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "unknown": 0
+  },
+  "critical_with_fixes": 1,
+  "policy_result": "warn",
+  "policy_mode": "advisory",
+  "severity_threshold": "high",
+  "ignore_unfixed": false,
+  "allowlist_cves": [
+    "CVE-2024-1111"
+  ],
+  "secret_findings": 1,
+  "hadolint_issues": 1,
+  "misconfiguration_count": 0,
+  "misconfiguration_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "unknown": 0
+  },
+  "build_status": "built",
+  "sbom_artifact_path": "sbom.cdx.json",
+  "artifact_bundle_name": "scan-summary-acme-api-dockerfile"
+}
