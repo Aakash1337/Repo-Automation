@@ -1,0 +1,47 @@
+{
+  "repo": "acme/web",
+  "ref": "main",
+  "dockerfile_path": "docker/Dockerfile",
+  "image_name": "localscan/web:docker",
+  "scan_time": "2026-04-03T00:00:00+00:00",
+  "vuln_counts": {
+    "critical": 0,
+    "high": 2,
+    "medium": 1,
+    "low": 0,
+    "unknown": 0
+  },
+  "fixable_vuln_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "unknown": 0
+  },
+  "suppressed_vuln_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "unknown": 0
+  },
+  "critical_with_fixes": 0,
+  "policy_result": "warn",
+  "policy_mode": "advisory",
+  "severity_threshold": "critical",
+  "ignore_unfixed": true,
+  "allowlist_cves": [],
+  "secret_findings": 0,
+  "hadolint_issues": 0,
+  "misconfiguration_count": 1,
+  "misconfiguration_counts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 1,
+    "low": 0,
+    "unknown": 0
+  },
+  "build_status": "built",
+  "sbom_artifact_path": "sbom.cdx.json",
+  "artifact_bundle_name": "scan-summary-acme-web-docker-dockerfile"
+}
