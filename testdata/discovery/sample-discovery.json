@@ -1,0 +1,68 @@
+{
+  "organization": "acme",
+  "discovered_at": "2026-04-03T00:00:00+00:00",
+  "policy_snapshot": {
+    "fork_policy": "skip",
+    "archived_policy": "skip",
+    "exclude_repos": [],
+    "exclude_paths": [
+      "vendor/"
+    ],
+    "repo_config_path": ".github/security-container-scan.yml"
+  },
+  "repos": [
+    {
+      "full_name": "acme/api",
+      "default_branch": "main",
+      "html_url": "https://github.com/acme/api",
+      "private": true,
+      "archived": false,
+      "fork": false,
+      "eligible": true,
+      "reason": "candidate",
+      "discovered_dockerfiles": [
+        "Dockerfile",
+        "ops/Dockerfile"
+      ],
+      "repo_config": {
+        "build_contexts": {
+          "ops/Dockerfile": "."
+        },
+        "allowlist_cves": [
+          "CVE-2024-1111"
+        ],
+        "severity_threshold": "high",
+        "ignore_unfixed": false
+      },
+      "config_source": ".github/security-container-scan.yml"
+    },
+    {
+      "full_name": "acme/web",
+      "default_branch": "main",
+      "html_url": "https://github.com/acme/web",
+      "private": false,
+      "archived": false,
+      "fork": false,
+      "eligible": true,
+      "reason": "candidate",
+      "discovered_dockerfiles": [
+        "docker/Dockerfile"
+      ],
+      "repo_config": null,
+      "config_source": null
+    },
+    {
+      "full_name": "acme/archived",
+      "default_branch": "main",
+      "html_url": "https://github.com/acme/archived",
+      "private": false,
+      "archived": true,
+      "fork": false,
+      "eligible": false,
+      "reason": "archived",
+      "discovered_dockerfiles": [],
+      "repo_config": null,
+      "config_source": null
+    }
+  ]
+}
