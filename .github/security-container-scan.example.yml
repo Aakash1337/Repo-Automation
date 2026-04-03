@@ -1,0 +1,14 @@
+enabled: true
+
+dockerfiles:
+  - Dockerfile
+
+build_contexts:
+  Dockerfile: .
+
+severity_threshold: critical
+ignore_unfixed: true
+allowlist_cves: []
+skip_secret_scan: false
+skip_build: false
+
