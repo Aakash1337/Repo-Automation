@@ -1,0 +1,30 @@
+organization: your-github-org
+repo_config_path: .github/security-container-scan.yml
+
+default_policy_mode: advisory
+default_severity_threshold: critical
+ignore_unfixed: true
+max_dockerfiles_per_repo: 10
+default_registry_prefix: localscan
+artifact_retention_days: 14
+scan_timeout_minutes: 30
+exception_ttl_days: 30
+schedule: "0 3 * * *"
+discovery_runner_label: ubuntu-latest
+scan_runner_label: ubuntu-latest
+docker_builder_mode: docker-buildx
+tooling_mode: bootstrap
+docker_cache_mode: gha
+docker_local_cache_dir: /var/lib/repo-scanner/buildx-cache
+
+fork_policy: skip
+archived_policy: skip
+
+exclude_repos: []
+exclude_paths:
+  - vendor/
+  - third_party/
+
+private_registry:
+  enabled: false
+  registry: ""
